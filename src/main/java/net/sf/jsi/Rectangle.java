@@ -30,6 +30,7 @@ public class Rectangle {
    * to reduce memory requirements.
    */
   public float minX, minY, maxX, maxY;
+  public float features[];
 
   public Rectangle() {
     minX = Float.MAX_VALUE;
