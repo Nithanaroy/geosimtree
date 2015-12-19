@@ -21,6 +21,8 @@ package net.sf.jsi.rtree;
 
 import java.io.Serializable;
 
+import net.sf.jsi.Rectangle;
+
 /**
  * <p>
  * Used by RTree. There are no public methods in this class.
@@ -43,7 +45,7 @@ public class Node2 implements Serializable {
 	int level;
 	int entryCount;
 	public boolean isVisited; // For DFS
-	public double meta[] = new double[2]; // min and max similar objects w.r.t ref vector
+	public Rectangle meta[] = new Rectangle[2]; // min and max similar objects w.r.t ref vector
 
 	Node2(int nodeId, int level, int maxNodeEntries) {
 		this.nodeId = nodeId;

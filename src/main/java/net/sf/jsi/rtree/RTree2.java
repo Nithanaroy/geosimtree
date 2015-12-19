@@ -21,6 +21,7 @@ package net.sf.jsi.rtree;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Properties;
 
 import org.slf4j.Logger;
@@ -515,6 +516,73 @@ public class RTree2 implements SpatialIndex, Serializable {
 			parents.pop();
 			parentsEntry.pop();
 		}
+	}
+
+	public void contains(Rectangle r, final float threshold, TIntProcedure v) {
+		// find all rectangles in the tree that are contained by the passed rectangle
+		// written to be non-recursive (should model other searches on this?)
+		TIntStack parents = new TIntArrayStack();
+		parents.push(rootNodeId);
+
+		TIntStack parentsEntry = new TIntArrayStack();
+		parentsEntry.push(-1);
+
+		// TODO: possible shortcut here - could test for intersection with the
+		// MBR of the root node. If no intersection, return immediately.
+
+		while (parents.size() > 0) {
+			Node2 n = getNode(parents.peek());
+			int startIndex = parentsEntry.peek() + 1;
+
+			if (!n.isLeaf()) {
+				// go through every entry in the index node to check
+				// if it intersects the passed rectangle. If so, it
+				// could contain entries that are contained.
+				boolean intersects = false;
+				for (int i = startIndex; i < n.entryCount; i++) {
+					Node2 child = getNode(n.ids[i]);
+					double minSim = cosineSimilarity(child.meta[0].features, r.features);
+					double maxSim = cosineSimilarity(child.meta[1].features, r.features);
+					if (Rectangle.intersects(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i],
+							n.entriesMaxY[i]) && isBetween(threshold, minSim, maxSim)) {
+						parents.push(n.ids[i]);
+						parentsEntry.pop();
+						parentsEntry.push(i); // this becomes the start index when the child has been searched
+						parentsEntry.push(-1);
+						intersects = true;
+						break; // ie go to next iteration of while()
+					}
+				}
+				if (intersects) {
+					continue;
+				}
+			} else {
+				// go through every entry in the leaf to check if
+				// it is contained by the passed rectangle
+				double minSim = cosineSimilarity(n.meta[0].features, r.features);
+				double maxSim = cosineSimilarity(n.meta[1].features, r.features);
+				// traverse the leaf only if the min and max similar rects fall between the threshold
+				if (isBetween(threshold, minSim, maxSim)) {
+					for (int i = 0; i < n.entryCount; i++) {
+						if (Rectangle.contains(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i],
+								n.entriesMaxY[i])) {
+							if (!v.execute(n.ids[i])) {
+								return;
+							}
+						}
+					}
+				}
+			}
+			parents.pop();
+			parentsEntry.pop();
+		}
+	}
+
+	private boolean isBetween(final double num, final double limit1, final double limit2) {
+		if (limit1 > limit2)
+			return num >= limit2 && num <= limit1;
+		else
+			return num >= limit1 && num <= limit2;
 	}
 
 	/**
@@ -1284,32 +1352,48 @@ public class RTree2 implements SpatialIndex, Serializable {
 		// Visited Node u
 		u.isVisited = true;
 		if (u.isLeaf()) {
-			System.out.format("Leaf: ID = %d, Level = %d, IDs: %s\n", u.nodeId, u.level, u.ids);
+			System.out.format("Leaf: ID = %d, Level = %d, RectIndices: %s\n", u.nodeId, u.level, Arrays.toString(u.ids));
 			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
+			Rectangle minSimRect = null, maxSimRect = null;
 			for (int i = 0; i < u.entryCount; i++) {
-				System.out.format("\t Min -(%f, %f), Max -(%f, %f)\n", u.entriesMinX[i], u.entriesMinY[i], u.entriesMaxX[i],
-						u.entriesMaxY[i]);
+				// System.out.format("\t Min -(%.2f, %.2f), Max -(%.2f, %.2f)\n", u.entriesMinX[i], u.entriesMinY[i], u.entriesMaxX[i],
+				// u.entriesMaxY[i]);
+				System.out.format("\t Point (%.2f, %.2f)\n", u.entriesMinX[i], u.entriesMinY[i]);
 				double sim = cosineSimilarity(rects.get(u.ids[i]).features, refFeatures);
-				if (sim < minSim)
+				if (sim < minSim) {
 					minSim = sim;
-				else if (sim > maxSim)
+					minSimRect = rects.get(u.ids[i]);
+				}
+				if (sim > maxSim) {
 					maxSim = sim;
+					maxSimRect = rects.get(u.ids[i]);
+				}
 			}
-			u.meta[0] = minSim;
-			u.meta[1] = maxSim;
+			u.meta[0] = minSimRect;
+			u.meta[1] = maxSimRect;
+			System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
 		} else {
-			System.out.format("Non-Leaf: ID = %d, Level = %d, IDs: %s\n", u.nodeId, u.level, u.ids);
+			System.out.format("Non-Leaf: ID = %d, Level = %d, #Leaves: %d, ChildNodeIDs: %s\n", u.nodeId, u.level, u.entryCount,
+					Arrays.toString(u.ids));
 			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
+			Rectangle minSimRect = null, maxSimRect = null;
 			for (int i = 0; i < u.entryCount; i++) {
 				int id = u.ids[i];
 				Node2 n = getNode(id);
-				if (n.meta[0] < minSim)
-					minSim = n.meta[0];
-				if (n.meta[0] > maxSim)
-					maxSim = n.meta[1];
+				double currMinSim = cosineSimilarity(n.meta[0].features, refFeatures);
+				double currMaxSim = cosineSimilarity(n.meta[1].features, refFeatures);
+				if (currMinSim < minSim) {
+					minSim = currMinSim;
+					minSimRect = n.meta[0];
+				}
+				if (currMaxSim > maxSim) {
+					maxSim = currMaxSim;
+					maxSimRect = n.meta[1];
+				}
 			}
-			u.meta[0] = minSim;
-			u.meta[1] = maxSim;
+			u.meta[0] = minSimRect;
+			u.meta[1] = maxSimRect;
+			System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
 		}
 	}
 

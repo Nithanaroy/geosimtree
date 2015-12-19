@@ -20,7 +20,10 @@ public class Runner {
 
 		final Rectangle[] rects = fetchData();
 		addToIndex(si, rects);
+
 		addToIndex(si2, rects);
+		si2.computeMinMax(4);
+		System.out.println("\n\n");
 
 		final ArrayList<Rectangle> result = new ArrayList<Rectangle>();
 		final ArrayList<Rectangle> result2 = new ArrayList<Rectangle>();
@@ -30,22 +33,20 @@ public class Runner {
 		q.features = new float[] { 1, 2, 3, 4 };
 		final float threshold = 0.5f;
 
-		// bruteForce(si, rects, result, q, threshold);
-		 minMax(si2, rects, result2, q, threshold);
+		bruteForce(si, rects, result, q, threshold);
+		minMax(si2, rects, result2, q, threshold);
 
-		// System.out.println("location + features: " + result);
-		// System.out.println("location + features: " + result2);
+		System.out.println("Brute location + features: " + result);
+		System.out.println("Opt location + features: " + result2);
 
-		si2.computeMinMax(4);
 	}
 
-	private static void minMax(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
+	private static void minMax(RTree2 si2, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
 			final float threshold) {
-		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
+		si2.contains(q, threshold, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
-				System.out.println("Contains Rectangle " + i + " " + rects[i]);
-				if (cosineSimilarity(rects[i].features, q.features) >= threshold)
-					result.add(rects[i]);
+				System.out.println("OptContains Rectangle " + i + " " + rects[i]);
+				result.add(rects[i]);
 				return true; // return true here to continue receiving results
 			}
 		});
@@ -55,7 +56,7 @@ public class Runner {
 			final float threshold) {
 		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
-				System.out.println("Contains Rectangle " + i + " " + rects[i]);
+				System.out.println("BruteContains Rectangle " + i + " " + rects[i]);
 				if (cosineSimilarity(rects[i].features, q.features) >= threshold)
 					result.add(rects[i]);
 				return true; // return true here to continue receiving results
