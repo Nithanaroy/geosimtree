@@ -544,7 +544,7 @@ public class RTree2 implements SpatialIndex, Serializable {
 					double minSim = cosineSimilarity(child.meta[0].features, r.features);
 					double maxSim = cosineSimilarity(child.meta[1].features, r.features);
 					if (Rectangle.intersects(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i],
-							n.entriesMaxY[i]) && isBetween(threshold, minSim, maxSim)) {
+							n.entriesMaxY[i]) && traverseSubTree(threshold, minSim, maxSim)) {
 						parents.push(n.ids[i]);
 						parentsEntry.pop();
 						parentsEntry.push(i); // this becomes the start index when the child has been searched
@@ -561,11 +561,11 @@ public class RTree2 implements SpatialIndex, Serializable {
 				// it is contained by the passed rectangle
 				double minSim = cosineSimilarity(n.meta[0].features, r.features);
 				double maxSim = cosineSimilarity(n.meta[1].features, r.features);
-				// traverse the leaf only if the min and max similar rects fall between the threshold
-				if (isBetween(threshold, minSim, maxSim)) {
+				// traverse the leaf only if the threshold <= most similar rect in this leaf
+				if (traverseSubTree(threshold, minSim, maxSim)) {
 					for (int i = 0; i < n.entryCount; i++) {
 						if (Rectangle.contains(r.minX, r.minY, r.maxX, r.maxY, n.entriesMinX[i], n.entriesMinY[i], n.entriesMaxX[i],
-								n.entriesMaxY[i])) {
+								n.entriesMaxY[i]) && cosineSimilarity(r.features, rects.get(n.ids[i]).features) >= threshold) {
 							if (!v.execute(n.ids[i])) {
 								return;
 							}
@@ -578,11 +578,14 @@ public class RTree2 implements SpatialIndex, Serializable {
 		}
 	}
 
-	private boolean isBetween(final double num, final double limit1, final double limit2) {
+	/**
+	 * Return true if minimum limit >= threshold
+	 */
+	private boolean traverseSubTree(final double threshold, final double limit1, final double limit2) {
 		if (limit1 > limit2)
-			return num >= limit2 && num <= limit1;
+			return threshold <= limit1;
 		else
-			return num >= limit1 && num <= limit2;
+			return threshold <= limit2;
 	}
 
 	/**

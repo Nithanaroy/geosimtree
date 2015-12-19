@@ -81,10 +81,10 @@ public class Runner {
 		rects[1].features = new float[] { 2, 2, 2, 2 };
 
 		rects[2] = new Rectangle(3, 3, 3, 3);
-		rects[2].features = new float[] { 3, 3, 3, 3 };
+		rects[2].features = new float[] { 13, 3.3f, 9.3f, 6.43f };
 
 		rects[3] = new Rectangle(4, 4, 4, 4);
-		rects[3].features = new float[] { 4, 4, 4, 4 };
+		rects[3].features = new float[] { -4, -4, -4, -4 };
 		return rects;
 	}
 
