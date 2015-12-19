@@ -19,22 +19,22 @@
 
 package net.sf.jsi.rtree;
 
-import gnu.trove.list.array.TIntArrayList;
-import gnu.trove.map.hash.TIntObjectHashMap;
-import gnu.trove.procedure.TIntProcedure;
-import gnu.trove.stack.TIntStack;
-import gnu.trove.stack.array.TIntArrayStack;
-
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import gnu.trove.list.array.TIntArrayList;
+import gnu.trove.map.hash.TIntObjectHashMap;
+import gnu.trove.procedure.TIntProcedure;
+import gnu.trove.stack.TIntStack;
+import gnu.trove.stack.array.TIntArrayStack;
 import net.sf.jsi.BuildProperties;
 import net.sf.jsi.Point;
-import net.sf.jsi.Rectangle;
 import net.sf.jsi.PriorityQueue;
+import net.sf.jsi.Rectangle;
 import net.sf.jsi.SpatialIndex;
 
 /**
@@ -99,6 +99,9 @@ public class RTree2 implements SpatialIndex, Serializable {
 	// so that they can be reused. Store the IDs of nodes
 	// which can be reused.
 	private TIntStack deletedNodeIds = new TIntArrayStack();
+
+	private float refFeatures[];
+	private ArrayList<Rectangle> rects = new ArrayList<>();
 
 	/**
 	 * Constructor. Use init() method to initialize parameters of the RTree.
@@ -185,6 +188,7 @@ public class RTree2 implements SpatialIndex, Serializable {
 		if (INTERNAL_CONSISTENCY_CHECKING) {
 			checkConsistency();
 		}
+		rects.add(r);
 	}
 
 	/**
@@ -1258,16 +1262,20 @@ public class RTree2 implements SpatialIndex, Serializable {
 		return mbr;
 	}
 
-	public void computeMinMax() {
+	public void computeMinMax(int featuresCount) {
 		Node2 root = getNode(getRootNodeId());
+		refFeatures = new float[featuresCount];
+		for (int i = 0; i < featuresCount; i++) {
+			refFeatures[i] = 1.0f;
+		}
 		computeMinMaxHelper(root);
 	}
 
 	private void computeMinMaxHelper(Node2 u) {
 		for (int i = 0; i < u.entryCount; i++) {
-			int id = u.ids[i];
 			if (u.isLeaf())
 				break;
+			int id = u.ids[i];
 			Node2 n = getNode(id);
 			if (!n.isVisited) {
 				computeMinMaxHelper(n);
@@ -1277,13 +1285,46 @@ public class RTree2 implements SpatialIndex, Serializable {
 		u.isVisited = true;
 		if (u.isLeaf()) {
 			System.out.format("Leaf: ID = %d, Level = %d, IDs: %s\n", u.nodeId, u.level, u.ids);
+			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
 			for (int i = 0; i < u.entryCount; i++) {
 				System.out.format("\t Min -(%f, %f), Max -(%f, %f)\n", u.entriesMinX[i], u.entriesMinY[i], u.entriesMaxX[i],
 						u.entriesMaxY[i]);
+				double sim = cosineSimilarity(rects.get(u.ids[i]).features, refFeatures);
+				if (sim < minSim)
+					minSim = sim;
+				else if (sim > maxSim)
+					maxSim = sim;
 			}
+			u.meta[0] = minSim;
+			u.meta[1] = maxSim;
 		} else {
 			System.out.format("Non-Leaf: ID = %d, Level = %d, IDs: %s\n", u.nodeId, u.level, u.ids);
+			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
+			for (int i = 0; i < u.entryCount; i++) {
+				int id = u.ids[i];
+				Node2 n = getNode(id);
+				if (n.meta[0] < minSim)
+					minSim = n.meta[0];
+				if (n.meta[0] > maxSim)
+					maxSim = n.meta[1];
+			}
+			u.meta[0] = minSim;
+			u.meta[1] = maxSim;
 		}
+	}
+
+	private static double cosineSimilarity(float a[], float b[]) {
+		double sim = 0;
+		if (a.length != b.length)
+			throw new IllegalArgumentException("Both the vectors should be of the same size");
+		float numerator = 0.0f, asqsum = 0.0f, bsqsum = 0.0f;
+		for (int i = 0; i < a.length; i++) {
+			numerator += a[i] * b[i];
+			asqsum += a[i] * a[i];
+			bsqsum += b[i] * b[i];
+		}
+		sim = numerator / (Math.sqrt(asqsum) * Math.sqrt(bsqsum));
+		return sim;
 	}
 
 }

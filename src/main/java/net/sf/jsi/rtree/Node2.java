@@ -43,6 +43,7 @@ public class Node2 implements Serializable {
 	int level;
 	int entryCount;
 	public boolean isVisited; // For DFS
+	public double meta[] = new double[2]; // min and max similar objects w.r.t ref vector
 
 	Node2(int nodeId, int level, int maxNodeEntries) {
 		this.nodeId = nodeId;

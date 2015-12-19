@@ -36,7 +36,7 @@ public class Runner {
 		// System.out.println("location + features: " + result);
 		// System.out.println("location + features: " + result2);
 
-		si2.computeMinMax();
+		si2.computeMinMax(4);
 	}
 
 	private static void minMax(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
