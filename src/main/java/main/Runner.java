@@ -7,23 +7,38 @@ import net.sf.jsi.Point;
 import net.sf.jsi.Rectangle;
 import net.sf.jsi.SpatialIndex;
 import net.sf.jsi.rtree.RTree;
+import net.sf.jsi.rtree.RTree2;
 
 public class Runner {
 	public static void main(String[] args) {
 		// Create and initialize an rtree
 		SpatialIndex si = new RTree();
 		si.init(null);
+		
+		SpatialIndex si2 = new RTree2();
+		si2.init(null);
 
 		final Rectangle[] rects = fetchData();
 		addToIndex(si, rects);
+		addToIndex(si2, rects);
 
 		final ArrayList<Rectangle> result = new ArrayList<Rectangle>();
+		final ArrayList<Rectangle> result2 = new ArrayList<Rectangle>();
 
 		// 1 unit from (3, 4)
 		final Rectangle q = new Rectangle(2.5f, 2.5f, 4.5f, 4.5f);
 		q.features = new float[] { 1, 2, 3, 4 };
 		final float threshold = 0.5f;
 
+		bruteForce(si, rects, result, q, threshold);
+		minMax(si2, rects, result2, q, threshold);
+
+		System.out.println("location + features: " + result);
+		System.out.println("location + features: " + result2);
+	}
+
+	private static void minMax(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
+			final float threshold) {
 		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
 				System.out.println("Contains Rectangle " + i + " " + rects[i]);
@@ -32,8 +47,18 @@ public class Runner {
 				return true; // return true here to continue receiving results
 			}
 		});
+	}
 
-		System.out.println("location + features: " + result);
+	private static void bruteForce(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
+			final float threshold) {
+		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
+			public boolean execute(int i) {
+				System.out.println("Contains Rectangle " + i + " " + rects[i]);
+				if (cosineSimilarity(rects[i].features, q.features) >= threshold)
+					result.add(rects[i]);
+				return true; // return true here to continue receiving results
+			}
+		});
 	}
 
 	private static void addToIndex(SpatialIndex si, final Rectangle[] rects) {
