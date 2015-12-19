@@ -14,8 +14,8 @@ public class Runner {
 		// Create and initialize an rtree
 		SpatialIndex si = new RTree();
 		si.init(null);
-		
-		SpatialIndex si2 = new RTree2();
+
+		RTree2 si2 = new RTree2();
 		si2.init(null);
 
 		final Rectangle[] rects = fetchData();
@@ -30,11 +30,13 @@ public class Runner {
 		q.features = new float[] { 1, 2, 3, 4 };
 		final float threshold = 0.5f;
 
-		bruteForce(si, rects, result, q, threshold);
-		minMax(si2, rects, result2, q, threshold);
+		// bruteForce(si, rects, result, q, threshold);
+		 minMax(si2, rects, result2, q, threshold);
 
-		System.out.println("location + features: " + result);
-		System.out.println("location + features: " + result2);
+		// System.out.println("location + features: " + result);
+		// System.out.println("location + features: " + result2);
+
+		si2.computeMinMax();
 	}
 
 	private static void minMax(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
@@ -62,6 +64,7 @@ public class Runner {
 	}
 
 	private static void addToIndex(SpatialIndex si, final Rectangle[] rects) {
+		// Do not start index of rectangle from 0
 		si.add(rects[0], 0);
 		si.add(rects[1], 1);
 		si.add(rects[2], 2);
