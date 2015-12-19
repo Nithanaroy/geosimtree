@@ -3,7 +3,6 @@ package main;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -104,23 +103,27 @@ public class Runner {
 	private static void minMax(RTree2 si2, final Rectangle[] rects, final ArrayList<Integer> result, final Rectangle q,
 			final float threshold) {
 		System.out.print("OptContains: ");
+		final Counter c = new Counter();
 		si2.contains(q, threshold, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
 				System.out.format("%d,", i);
 				// result.add(rects[i]);
 				result.add(i);
+				c.count++;
 				return true; // return true here to continue receiving results
 			}
 		});
-		System.out.println();
+		System.out.println("\nTotal: " + c.count);
 	}
 
 	private static void bruteForce(SpatialIndex si, final Rectangle[] rects, final ArrayList<Integer> result, final Rectangle q,
 			final float threshold) {
 		System.out.print("BruteContains: ");
+		final Counter c = new Counter();
 		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
 				System.out.format("%d,", i);
+				c.count++;
 				if (cosineSimilarity(rects[i].features, q.features) >= threshold) {
 					// result.add(rects[i]);
 					result.add(i);
@@ -128,7 +131,7 @@ public class Runner {
 				return true; // return true here to continue receiving results
 			}
 		});
-		System.out.println();
+		System.out.println("\nTotal: " + c.count);
 	}
 
 	private static void addToIndex(SpatialIndex si, final Rectangle[] rects, int count) {
@@ -217,5 +220,13 @@ public class Runner {
 				}, 1, // the number of nearby rectangles to find
 				Float.MAX_VALUE // Don't bother searching further than this. MAX_VALUE means search everything
 		);
+	}
+}
+
+class Counter {
+	int count;
+
+	public Counter() {
+		count = 0;
 	}
 }
