@@ -11,4 +11,4 @@ target
 *.ipr
 *.iws
 /.idea/
-
+data/*.txt

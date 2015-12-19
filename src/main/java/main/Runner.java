@@ -1,6 +1,10 @@
 package main;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import gnu.trove.procedure.TIntProcedure;
 import net.sf.jsi.Point;
@@ -10,7 +14,7 @@ import net.sf.jsi.rtree.RTree;
 import net.sf.jsi.rtree.RTree2;
 
 public class Runner {
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		// Create and initialize an rtree
 		SpatialIndex si = new RTree();
 		si.init(null);
@@ -18,58 +22,109 @@ public class Runner {
 		RTree2 si2 = new RTree2();
 		si2.init(null);
 
-		final Rectangle[] rects = fetchData();
-		addToIndex(si, rects);
+		long preprocessing, brutetime, opttime;
 
-		addToIndex(si2, rects);
-		si2.computeMinMax(4);
-		System.out.println("\n\n");
+		// final Rectangle[] rects = initForStaticData(si, si2);
+		final Rectangle[] rects = initForDynamicData(si, si2, "/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/sample.txt", 100);
+		int featuresCount = 4;
+		long startTime = System.currentTimeMillis();
+		si2.computeMinMax(featuresCount);
+		long stopTime = System.currentTimeMillis();
+		preprocessing = stopTime - startTime;
+		
 
-		final ArrayList<Rectangle> result = new ArrayList<Rectangle>();
-		final ArrayList<Rectangle> result2 = new ArrayList<Rectangle>();
+		final ArrayList<Integer> result = new ArrayList<>();
+		final ArrayList<Integer> result2 = new ArrayList<>();
 
+		// final Rectangle q = getQueryForStaticData();
+		final Rectangle q = getQueryForDynamicData();
+		final float threshold = 0.5f;
+
+		startTime = System.currentTimeMillis();
+		bruteForce(si, rects, result, q, threshold);
+		stopTime = System.currentTimeMillis();
+		brutetime = stopTime - startTime;
+		
+
+		startTime = System.currentTimeMillis();
+		minMax(si2, rects, result2, q, threshold);
+		stopTime = System.currentTimeMillis();
+		opttime = stopTime - startTime;
+		
+
+		Collections.sort(result);
+		Collections.sort(result2);
+		System.out.println("Bru location + features\t: " + result);
+		System.out.println("Opt location + features\t: " + result2);
+		System.out.println("Brute Force time: " + brutetime);
+		System.out.println("Pre-processing time: " + preprocessing);
+		System.out.println("Index time: " + opttime);
+
+	}
+
+	private static Rectangle getQueryForDynamicData() {
+		final Rectangle q = new Rectangle(-180f, -90f, 180f, 90f);
+		q.features = new float[] { 1, 2, 3, 4 };
+		return q;
+	}
+
+	private static Rectangle getQueryForStaticData() {
 		// 1 unit from (3, 4)
 		final Rectangle q = new Rectangle(2.5f, 2.5f, 4.5f, 4.5f);
 		q.features = new float[] { 1, 2, 3, 4 };
-		final float threshold = 0.5f;
-
-		bruteForce(si, rects, result, q, threshold);
-		minMax(si2, rects, result2, q, threshold);
-
-		System.out.println("Brute location + features: " + result);
-		System.out.println("Opt location + features: " + result2);
-
+		return q;
 	}
 
-	private static void minMax(RTree2 si2, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
+	private static Rectangle[] initForStaticData(SpatialIndex si, RTree2 si2) {
+		final Rectangle[] rects = fetchData();
+		addToIndex(si, rects, 4);
+
+		addToIndex(si2, rects, 4);
+		return rects;
+	}
+
+	private static Rectangle[] initForDynamicData(SpatialIndex si, RTree2 si2, String filename, int maxLinesToRead) throws IOException {
+		final Rectangle[] rects = fetchData(filename, maxLinesToRead);
+		addToIndex(si, rects, rects.length);
+
+		addToIndex(si2, rects, rects.length);
+		return rects;
+	}
+
+	private static void minMax(RTree2 si2, final Rectangle[] rects, final ArrayList<Integer> result, final Rectangle q,
 			final float threshold) {
+		System.out.print("OptContains: ");
 		si2.contains(q, threshold, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
-				System.out.println("OptContains Rectangle " + i + " " + rects[i]);
-				result.add(rects[i]);
+				System.out.format("%d,", i);
+				// result.add(rects[i]);
+				result.add(i);
 				return true; // return true here to continue receiving results
 			}
 		});
+		System.out.println();
 	}
 
-	private static void bruteForce(SpatialIndex si, final Rectangle[] rects, final ArrayList<Rectangle> result, final Rectangle q,
+	private static void bruteForce(SpatialIndex si, final Rectangle[] rects, final ArrayList<Integer> result, final Rectangle q,
 			final float threshold) {
+		System.out.print("BruteContains: ");
 		si.contains(q, new TIntProcedure() { // a procedure whose execute() method will be called with the results
 			public boolean execute(int i) {
-				System.out.println("BruteContains Rectangle " + i + " " + rects[i]);
-				if (cosineSimilarity(rects[i].features, q.features) >= threshold)
-					result.add(rects[i]);
+				System.out.format("%d,", i);
+				if (cosineSimilarity(rects[i].features, q.features) >= threshold) {
+					// result.add(rects[i]);
+					result.add(i);
+				}
 				return true; // return true here to continue receiving results
 			}
 		});
+		System.out.println();
 	}
 
-	private static void addToIndex(SpatialIndex si, final Rectangle[] rects) {
-		// Do not start index of rectangle from 0
-		si.add(rects[0], 0);
-		si.add(rects[1], 1);
-		si.add(rects[2], 2);
-		si.add(rects[3], 3);
+	private static void addToIndex(SpatialIndex si, final Rectangle[] rects, int count) {
+		for (int i = 0; i < count; i++) {
+			si.add(rects[i], i);
+		}
 	}
 
 	private static Rectangle[] fetchData() {
@@ -86,6 +141,34 @@ public class Runner {
 		rects[3] = new Rectangle(4, 4, 4, 4);
 		rects[3].features = new float[] { -4, -4, -4, -4 };
 		return rects;
+	}
+
+	private static Rectangle[] fetchData(String filename, int maxLinesToRead) throws IOException {
+
+		final ArrayList<Rectangle> rectsList = new ArrayList<>();
+		BufferedReader br = new BufferedReader(new FileReader(filename));
+		String line = br.readLine();
+		int linesRead = 0;
+		while (line != null && linesRead < maxLinesToRead) {
+			if (line.trim().length() == 0)
+				continue;
+			String coords_features[] = line.split(" ");
+			String coords[] = coords_features[0].split(",");
+			String features[] = coords_features[1].split(",");
+			Rectangle r = new Rectangle(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), Float.parseFloat(coords[0]),
+					Float.parseFloat(coords[1]));
+			r.features = new float[features.length];
+			for (int i = 0; i < features.length; i++) {
+				r.features[i] = Float.parseFloat(features[i]);
+			}
+			rectsList.add(r);
+			line = br.readLine();
+			linesRead++;
+		}
+
+		br.close();
+		Rectangle rects[] = new Rectangle[rectsList.size()];
+		return rectsList.toArray(rects);
 	}
 
 	private static double cosineSimilarity(float a[], float b[]) {

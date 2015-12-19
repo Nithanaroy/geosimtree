@@ -1355,13 +1355,13 @@ public class RTree2 implements SpatialIndex, Serializable {
 		// Visited Node u
 		u.isVisited = true;
 		if (u.isLeaf()) {
-			System.out.format("Leaf: ID = %d, Level = %d, RectIndices: %s\n", u.nodeId, u.level, Arrays.toString(u.ids));
+			// System.out.format("Leaf: ID = %d, Level = %d, RectIndices: %s\n", u.nodeId, u.level, Arrays.toString(u.ids));
 			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
 			Rectangle minSimRect = null, maxSimRect = null;
 			for (int i = 0; i < u.entryCount; i++) {
 				// System.out.format("\t Min -(%.2f, %.2f), Max -(%.2f, %.2f)\n", u.entriesMinX[i], u.entriesMinY[i], u.entriesMaxX[i],
 				// u.entriesMaxY[i]);
-				System.out.format("\t Point (%.2f, %.2f)\n", u.entriesMinX[i], u.entriesMinY[i]);
+				// System.out.format("\t Point (%.2f, %.2f)\n", u.entriesMinX[i], u.entriesMinY[i]);
 				double sim = cosineSimilarity(rects.get(u.ids[i]).features, refFeatures);
 				if (sim < minSim) {
 					minSim = sim;
@@ -1374,10 +1374,10 @@ public class RTree2 implements SpatialIndex, Serializable {
 			}
 			u.meta[0] = minSimRect;
 			u.meta[1] = maxSimRect;
-			System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
+			// System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
 		} else {
-			System.out.format("Non-Leaf: ID = %d, Level = %d, #Leaves: %d, ChildNodeIDs: %s\n", u.nodeId, u.level, u.entryCount,
-					Arrays.toString(u.ids));
+			// System.out.format("Non-Leaf: ID = %d, Level = %d, #Leaves: %d, ChildNodeIDs: %s\n", u.nodeId, u.level, u.entryCount,
+			// Arrays.toString(u.ids));
 			double minSim = 2, maxSim = -2; // Cosine Sim ranges from -1 to 1
 			Rectangle minSimRect = null, maxSimRect = null;
 			for (int i = 0; i < u.entryCount; i++) {
@@ -1396,7 +1396,7 @@ public class RTree2 implements SpatialIndex, Serializable {
 			}
 			u.meta[0] = minSimRect;
 			u.meta[1] = maxSimRect;
-			System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
+			// System.out.format("-- MetaData: %s\n\n", Arrays.toString(u.meta));
 		}
 	}
 
