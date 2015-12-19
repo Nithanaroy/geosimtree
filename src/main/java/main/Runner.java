@@ -3,6 +3,7 @@ package main;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 
@@ -15,6 +16,18 @@ import net.sf.jsi.rtree.RTree2;
 
 public class Runner {
 	public static void main(String[] args) throws IOException {
+		// PrintWriter writer = new PrintWriter("/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/stats.txt", "UTF-8");
+		int runSizes[] = { 50, 100, 500, 1000, 10000, 50000, 10000, 500000, 1000000 };
+		for (int i = 0; i < runSizes.length; i++) {
+			run(runSizes[i]);
+			// run(runSizes[i], writer);
+			// break;
+		}
+		// writer.close();
+	}
+
+	private static void run(int lines) throws IOException {
+		System.out.format("Lines: %d\n", lines);
 		// Create and initialize an rtree
 		SpatialIndex si = new RTree();
 		si.init(null);
@@ -25,13 +38,12 @@ public class Runner {
 		long preprocessing, brutetime, opttime;
 
 		// final Rectangle[] rects = initForStaticData(si, si2);
-		final Rectangle[] rects = initForDynamicData(si, si2, "/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/sample.txt", 100);
+		final Rectangle[] rects = initForDynamicData(si, si2, "/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/sample.txt", lines);
 		int featuresCount = 4;
 		long startTime = System.currentTimeMillis();
 		si2.computeMinMax(featuresCount);
 		long stopTime = System.currentTimeMillis();
 		preprocessing = stopTime - startTime;
-		
 
 		final ArrayList<Integer> result = new ArrayList<>();
 		final ArrayList<Integer> result2 = new ArrayList<>();
@@ -44,13 +56,11 @@ public class Runner {
 		bruteForce(si, rects, result, q, threshold);
 		stopTime = System.currentTimeMillis();
 		brutetime = stopTime - startTime;
-		
 
 		startTime = System.currentTimeMillis();
 		minMax(si2, rects, result2, q, threshold);
 		stopTime = System.currentTimeMillis();
 		opttime = stopTime - startTime;
-		
 
 		Collections.sort(result);
 		Collections.sort(result2);
@@ -59,7 +69,7 @@ public class Runner {
 		System.out.println("Brute Force time: " + brutetime);
 		System.out.println("Pre-processing time: " + preprocessing);
 		System.out.println("Index time: " + opttime);
-
+		System.out.println("\n\n");
 	}
 
 	private static Rectangle getQueryForDynamicData() {
