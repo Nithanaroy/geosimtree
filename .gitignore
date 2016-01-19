@@ -12,3 +12,5 @@ target
 *.iws
 /.idea/
 data/*.txt
+data/*.csv
+.DS_Store

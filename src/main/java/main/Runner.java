@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 
 import gnu.trove.procedure.TIntProcedure;
@@ -37,7 +38,7 @@ public class Runner {
 		long preprocessing, brutetime, opttime;
 
 		// final Rectangle[] rects = initForStaticData(si, si2);
-		final Rectangle[] rects = initForDynamicData(si, si2, "/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/sample.txt", lines);
+		final Rectangle[] rects = initForDynamicData(si, si2, "/Volumes/350GB/Projects/RTree_MinMax/rtree_java/data/random.csv", lines);
 		int featuresCount = 4;
 		long startTime = System.currentTimeMillis();
 		si2.computeMinMax(featuresCount);
@@ -160,14 +161,14 @@ public class Runner {
 
 		final ArrayList<Rectangle> rectsList = new ArrayList<>();
 		BufferedReader br = new BufferedReader(new FileReader(filename));
-		String line = br.readLine();
+		String line = br.readLine(); // comman separated list of coordinates and features. First two values are coords and rest are features
 		int linesRead = 0;
 		while (line != null && linesRead < maxLinesToRead) {
 			if (line.trim().length() == 0)
 				continue;
-			String coords_features[] = line.split(" ");
-			String coords[] = coords_features[0].split(",");
-			String features[] = coords_features[1].split(",");
+			String coords_features[] = line.split(",");
+			String coords[] = Arrays.copyOfRange(coords_features, 0, 2); // coords_features[0].split(",");
+			String features[] = Arrays.copyOfRange(coords_features, 2, coords_features.length); // coords_features[1].split(",");
 			Rectangle r = new Rectangle(Float.parseFloat(coords[0]), Float.parseFloat(coords[1]), Float.parseFloat(coords[0]),
 					Float.parseFloat(coords[1]));
 			r.features = new float[features.length];
