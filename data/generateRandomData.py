@@ -4,6 +4,10 @@ import sys, random, os
 
 
 def main():
+    if len(sys.argv) < 3:
+        print "Two rumtime arguments required: output file path, number of points"
+        return
+
     lines = int(sys.argv[2])
     outfile = sys.argv[1]
     # TODO: Argument for number of features

@@ -11,6 +11,7 @@ target
 *.ipr
 *.iws
 /.idea/
+*.pyc
 data/*.txt
 data/*.csv
 .DS_Store
